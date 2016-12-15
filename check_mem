@@ -1,0 +1,85 @@
+#!/bin/bash
+#coding:utf8
+#
+
+
+
+useage() {
+	echo "useage: $0 [-h|-help] 
+		      -w max -c min
+		eg:$0 -w 20% -c 10%" 
+	exit 2
+}
+
+no_argv=0
+if [ "$no_argv" -eq "$#" ];then
+	echo "no argv exit now!"
+	exit 1
+fi
+
+mem_free() {
+	mem_total=`free -m | awk '{print $2}' | head -2 | tail -1`
+	mem_free=`free -m | awk '{print $4}' | head -2 | tail -1`
+	cache=`free -m | awk '{print $7}' | head -2 | tail -1`
+    mem_sheng=`echo $mem_free+$cache | bc`
+	num=`awk 'BEGIN{printf "%.2f\n",'$mem_sheng'/'$mem_total'*100}'`
+	max=`echo ${aa%%%}`
+	min=`echo ${bb%%%}`
+	if [ `echo "$num<=$min" | bc` -eq 1 ];then
+		echo "内存严重不足，已低于$bb"
+		exit 2
+	elif [ `echo "$num>=$max" | bc` -eq 1 ];then
+		echo "内存充足,内存剩余`echo $num%`"
+		exit 0
+	else
+		echo "内存不足，低于$aa"
+		exit 1
+	fi
+}
+
+lstrue() {
+    large=`echo ${aa%%%}`
+    small=`echo ${bb%%%}`
+    if [ "$large" -gt "$small" ];then
+        return 0
+    else 
+        return 1
+    fi
+}
+
+flag=0
+while getopts "w:c:h" option
+do
+	case "$option" in
+		h|--help)
+			useage
+			;;
+		w)
+			((flag++))
+			aa="$OPTARG"
+            if ! [[ "$aa" =~ ^[0-9]{1,2}\%$ ]];then
+                useage
+            fi
+			if [ "$flag" -eq 2 ];then
+				mem_free
+			fi
+			;;
+        c)
+			bb="$OPTARG"
+			((flag++))
+            if ! [[ "$bb" =~ ^[0-9]{1,2}\%$ ]];then
+                useage
+            fi
+			if [ "$flag" -eq 2 ] && lstrue;then
+				mem_free
+			fi
+			;;
+		*)	
+			useage
+	esac
+done
+if [ $flag != 2 ];then
+    useage
+fi
+shift $(($OPTIND-1))
+exit 0
